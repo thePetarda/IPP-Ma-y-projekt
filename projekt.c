@@ -2,6 +2,7 @@
 #include <stdlib.h>
 // check realloc in load
 // obsluga błędów w load za pomoć aujemnych wartości k
+// ogarnąć zmienne do użycia
 
 int load(int** n){
     int k = 0;
@@ -10,13 +11,6 @@ int load(int** n){
     int space = 0;
     while ((elem != '\n') && (elem != EOF))
     {
-        // if ((elem != ' ') && (elem != '\t') && (elem != '\v') && (elem != '\f') && (elem != '\r')) {
-        //     char let = (char)elem;
-        //     *(*n + k) = atoi(&let);
-        //     k ++;
-        //     *n = realloc(*n, (k + 1)*sizeof(int));
-        // }
-        // elem = getchar();
         if ((elem != ' ') && (elem != '\t') && (elem != '\v') && (elem != '\f') && (elem != '\r')) {
             char let = (char)elem;
             num = atoi(&let) + (10 * num);
@@ -44,16 +38,18 @@ int loadhex(int** z){
 
 int loadweird(int** z, int p, int k){
     int *a = malloc(sizeof(int));
-    int l = load(a); //CZY L==5? i czy m ==0?
-    long* s = malloc((a[3]) * sizeof(long));
-    long* w = malloc((a[3]) * sizeof(long));
-    s[0] = a[l - 1];
-    for (int i = 1; i <l; i++){
-        s[i] = (a[0] * s[i - 1] + a[1]) % a[2];
+    int l = load(&a); //CZY L==5? i czy m ==0?
+    int* s = malloc((a[3]) * sizeof(int));
+    int* w = malloc((a[3]) * sizeof(int));
+    s[0] = (a[0] * a[4] + a[1]) % a[2] + 1; //czy +1?
+    for (int i = 1; i < a[3]; i++){
+        s[i] = (a[0] * s[i - 1] + a[1]) % a[2] + 1; //czy + 1?
+    }
+    for (int i = 0; i <a[3]; i++){
         w[i] = s[i] % p;
-        long elem = w[i];
+        int elem = w[i];
         while (elem < k) {
-            *z[elem] = 1;
+            *z[elem - 1] = 1;
             elem += 4294967296;
         }
     }
@@ -64,7 +60,7 @@ int loadweird(int** z, int p, int k){
 int loadz(int** z, int p, int k){
     int elem1 = getchar();
     *z = realloc(*z, (k)*sizeof(int));
-    for (int i = 0; i < k; i++) {*z[i] = 0;}
+    for (int i = 0; i < k; i++) {*(*z + i) = 0;}
     if (elem1 == 'R'){
         loadweird(z, p, k);
     }
@@ -81,15 +77,12 @@ int loadz(int** z, int p, int k){
 int loadall(int** n, int** x, int** y, int** z, int* k) {
     int a = load(n);
     int b = load(x);
-    int c = load(y);
-    if ((a == b) && (b == c)) {
-        *k = a;
-        return 1;
-    }
-    else return 0; //WYJĄTEK!!!!!!!
+    int c = load(y); //WYJĄTEK!!!!!!!
+    if ((a == b) && (b == c)) {*k = a;}
     int p = 1;
     for (int i = 0; i < a; i++){p *= *n[i];}
     loadz(z, p, *k);
+    return 0;
 }
 
 
