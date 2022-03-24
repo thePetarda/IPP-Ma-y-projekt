@@ -3,9 +3,11 @@
 
 
 int main () {
-    int x = 0001;
-    printf("You entered: %d", x);
+    int* x = malloc(3 * sizeof(int));
+    // char y = (char) x;
+    x[0] = 5;
+    printf("You entered: %d", x[0]);
     // return x;
     // putchar(x);
-    return x;
+    return 0;
 }
