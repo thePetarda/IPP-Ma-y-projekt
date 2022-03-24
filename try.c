@@ -3,9 +3,9 @@
 
 
 int main () {
-    int x = getchar();
-    // printf("You entered: %d", x);
+    int x = 0001;
+    printf("You entered: %d", x);
     // return x;
-    putchar(x);
+    // putchar(x);
     return x;
 }
