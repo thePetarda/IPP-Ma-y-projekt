@@ -1,33 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 // check realloc in load
-// obsluga błędów w load za pomoć aujemnych wartości k
 // ogarnąć zmienne do użycia
 
-int load(int** n){
-    int k = 0;
+int load(int** n, int* k){
     int elem = getchar();
     int num = 0;
-    int space = 0;
+    int space = 1;
     while ((elem != '\n') && (elem != EOF))
     {
         if ((elem != ' ') && (elem != '\t') && (elem != '\v') && (elem != '\f') && (elem != '\r')) {
-            char let = (char)elem;
-            num = atoi(&let) + (10 * num);
+            num = (10 * num);
+            int dig = elem - 48;
+            if ((dig < 0) || (dig > 9)) {return 1;}
+            num += dig;
             space = 0;
         }
         else if (space == 0){
             space = 1;
-            *(*n + k) = num;
-            num = 0;
-            k ++;
-            *n = realloc(*n, (k)*sizeof(int)); //może wystarczy k
+            if (num != 0){ 
+                *(*n + (*k)) = num;
+                num = 0;
+                (*k) ++;
+                *n = realloc(*n, (*k)*sizeof(int)); //może wystarczy k
+            }
+            if (*n == NULL) {return 2;}
         }
         elem = getchar();
     }
-    *(*n + k) = num;
-    k++;
-    return k;
+    if (num != 0){ 
+        *(*n + (*k)) = num;
+        (*k)++;
+    }
+    return 0;
 }
 
 
@@ -100,13 +105,19 @@ int loadz(int** z, int p, int k){
 
 
 int loadall(int** n, int** x, int** y, int** z, int* k) {
-    int a = load(n);
-    int b = load(x);
-    int c = load(y); //WYJĄTEK!!!!!!!
-    if ((a == b) && (b == c)) {*k = a;}
-    int p = 1;
-    for (int i = 0; i < a; i++){p *= *n[i];}
-    loadz(z, p, *k);
+    int t;
+    t = load(n, k);
+    if (t != 0) {return 1;}
+    int a = *k;
+    *k = 0;
+    t = load(x, k);
+    if ((a != *k) || (t != 0)) {return 2;}
+    *k = 0;
+    t = load(y, k);
+    if ((a != *k) || (t != 0)) {return 3;}
+    // int p = 1;
+    // for (int i = 0; i < a; i++){p *= *n[i];}
+    // loadz(z, p, *k);
     return 0;
 }
 

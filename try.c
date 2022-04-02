@@ -1,42 +1,68 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int loadhex(int** z, int k){
-    *z = realloc(*z, (k)*sizeof(int));
+int load(int** n, int* k){
     int elem = getchar();
-    int j = 0;//czy na końcu j == k - 1?
-    while ((elem != '\n') && (elem != EOF)) {
-        if ((elem < 58) && (elem > 47)){
-            elem -= 48;
+    int num = 0;
+    int space = 1;
+    while ((elem != '\n') && (elem != EOF))
+    {
+        if ((elem != ' ') && (elem != '\t') && (elem != '\v') && (elem != '\f') && (elem != '\r')) {
+            num = (10 * num);
+            int dig = elem - 48;
+            if ((dig < 0) || (dig > 9)) {return 1;}
+            num += dig;
+            space = 0;
         }
-        else if ((elem < 71) && (elem > 64)){
-            elem -= 64;
-            elem += 9;
+        else if (space == 0){
+            space = 1;
+            if (num != 0){ 
+                *(*n + (*k)) = num;
+                num = 0;
+                (*k) ++;
+                *n = realloc(*n, (*k)*sizeof(int)); //może wystarczy k
+            }
+            if (*n == NULL) {return 2;}
         }
-        else if ((elem < 103) && (elem > 96)){
-            elem -= 96;
-            elem += 9;
-        }
-        else{//ERROR 
-        }
-        printf("%d,", elem);
-        for (int i = 0; i < 4; i++){
-            *(*z + j + 3 - i) = elem % 2;
-            elem /= 2;
-        }
-        j += 4;
         elem = getchar();
+    }
+    if (num != 0){ 
+        *(*n + (*k)) = num;
+        (*k)++;
     }
     return 0;
 }
 
+int loadall(int** n, int** x, int** y, int** z, int* k) {
+    int t;
+    t = load(n, k);
+    if (t != 0) {return 1;}
+    int a = *k;
+    *k = 0;
+    t = load(x, k);
+    if ((a != *k) || (t != 0)) {return 2;}
+    *k = 0;
+    t = load(y, k);
+    if ((a != *k) || (t != 0)) {return 3;}
+    // int p = 1;
+    // for (int i = 0; i < a; i++){p *= *n[i];}
+    // loadz(z, p, *k);
+    return 0;
+}
+
 int main () {
-    int k = 4;
+    int k = 0;
+    int *n = malloc(sizeof(int));
+    int *x = malloc(sizeof(int));
+    int *y = malloc(sizeof(int));
     int *z = malloc(sizeof(int));
-    loadhex(&z, k);
+    int a = loadall(&n, &x, &y, &z, &k);
+    printf("%d,", a);
+    printf("%d,\n", k);
     for (int i = 0; i < k; i++){
         // putchar(n[i]);
-        printf("%d,", z[i]);
+        printf("%d,", n[i]);
     }
+
     return 0;
 }
