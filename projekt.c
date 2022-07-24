@@ -26,6 +26,7 @@ int load(unsigned int** n, unsigned int* k){
                 *(*n + (*k)) = num;
                 num = 0;
                 (*k) ++;
+                if ((*k) > sizeof(size_t) / sizeof(unsigned int)) {return 2;}
                 *n = realloc(*n, (*k)*sizeof(unsigned int)); //może wystarczy k
                 if (*n == NULL) {return 2;}
             }
@@ -57,7 +58,7 @@ int loadhex(unsigned int** z, unsigned int k){
             elem += 9;
         }
         else {return 1;}
-        for (int i = 0; i < 4; i++){
+        for (int i = 3; i >= 0; i--){
             *(*z + j + 3 - i) = elem % 2;
             elem /= 2;
         }
@@ -70,12 +71,17 @@ int loadhex(unsigned int** z, unsigned int k){
 
 int loadweird(unsigned int** z, unsigned int p, unsigned int k){
     unsigned int *a = malloc(sizeof(unsigned int));
+    // if (a == NULL) {return 1;}
     int l = 0;
     int t = load(&a, &l);
+    if (t != 0) {return 1;}
     if ((l != 5) || (t != 0)) {return 1;}
     if (a[2] == 0) {return 1;} // m != 0
+    if (a[3] > sizeof(size_t) / sizeof(unsigned int)) {return 1;}
     unsigned int* s = malloc((a[3]) * sizeof(unsigned int));
+    // if (s == NULL) {return 1;}
     unsigned int* w = malloc((a[3]) * sizeof(unsigned int));
+    // if (w == NULL) {return 1;}
     s[0] = (a[0] * a[4] + a[1]) % a[2] + 1;
     for (unsigned int i = 1; i <= a[3]; i++){
         // s[i] = (a[0] * s[i - 1] + a[1]) % a[2] + 1;
@@ -97,29 +103,47 @@ int loadweird(unsigned int** z, unsigned int p, unsigned int k){
 }
 
 
-int loadz(unsigned int** z, unsigned int p, unsigned int k){
+int loadz(unsigned int** n, unsigned int** z, unsigned int k, unsigned int* wz){
+    unsigned int m = 0;
+    unsigned int p = 1;
+    for (unsigned int i = 0; i < k; i++){
+        unsigned int x = (*(*n + i)) - 1;
+        p *= (*(*n + i));
+        for (unsigned int j = 0; j < i; j++) {
+            x *= (*(*n + j));
+        }
+        m += x;
+    }
+    // m++; //nie jestem pewna
+    if (m == 0) {m = 4;}
+    if ((m % 4) != 0) {m += 4 - (m % 4);}
+    // printf(" m = %d ", m); 
+
+    
     int t = 0;
     //jaki ma być rozmiar z?
-    *z = realloc(*z, (k)*sizeof(unsigned int));
+    if (m >= sizeof(size_t) / sizeof(unsigned int)) {return 2;}
+    *wz = m;
+    *z = realloc(*z, m*sizeof(unsigned int));
     if (*z == NULL) {return 2;}
-    for (unsigned int i = 0; i < k; i++) {*(*z + i) = 0;}
+    for (unsigned int i = 0; i < m; i++) {*(*z + i) = 0;}
     int elem1 = getchar();
     // putchar(elem1);
     if (elem1 == 'R'){
         // printf("LOL");
-        t = loadweird(z, p, k);
+        t = loadweird(z, p, m);
     }
     else {
         int elem2 = getchar();
         if ((elem1 == '0') && (elem2 == 'x')){
-            t = loadhex(z, k);
+            t = loadhex(z, m);
         }
         else {return 1;}
     }
     return t;
 }
 
-int checkempty(unsigned int** z, unsigned int** n, unsigned int** q, unsigned int k){
+int checkfull(unsigned int** z, unsigned int** n, unsigned int** q, unsigned int wz, unsigned int k){
     int a = 0;
     int p = 1;
     for (int i = 0; i < k; i++){
@@ -128,7 +152,8 @@ int checkempty(unsigned int** z, unsigned int** n, unsigned int** q, unsigned in
         a += (el - 1)*p;
         p *= *(*n + i);
     }
-    // check rozmiar a
+    // if (a > k) {return 2;}
+    if (a > wz) {return 2;}
     return *(*z + a);
 }
 
@@ -147,20 +172,23 @@ int loadall(unsigned int** n, unsigned int** x, unsigned int** y, unsigned int**
     t = load(y, k);
     if (t == 2) {return 6;}
     if ((a != *k) || (t != 0)) {return 3;}
-    unsigned int m = 0;
-    unsigned int p = 1;
-    for (unsigned int i = 0; i < (*k); i++){
-        unsigned int x = (*(*n + i)) - 1;
-        p *= (*(*n + i));
-        for (unsigned int j = 0; j < i; j++) {
-            x *= (*(*n + j));
-        }
-        m += x;
-    }
-    if ((m % 4) != 0) {m += 4 - (m % 4);}
-    t = loadz(z, p, *k); //wcześniej *k -> m
+    // unsigned int m = 0;
+    // unsigned int p = 1;
+    // for (unsigned int i = 0; i < (*k); i++){
+    //     unsigned int x = (*(*n + i)) - 1;
+    //     p *= (*(*n + i));
+    //     for (unsigned int j = 0; j < i; j++) {
+    //         x *= (*(*n + j));
+    //     }
+    //     m += x;
+    // }
+    // if ((m % 4) != 0) {m += 4 - (m % 4);}
+    unsigned int wz = 0;
+    t = loadz(n, z, *k, &wz);
     if (t == 2) {return 6;}
     if (t != 0) {return 4;}
+    if (checkfull(z, n, x, wz, *k) != 0) {return 2;}
+    if (checkfull(z, n, y, wz, *k) != 0) {return 3;}
     if (getchar() != EOF) {return 5;}
     return 0;
 }
@@ -187,7 +215,7 @@ int main (){
         return 1;
     }
     end(&n, &x, &y, &z);
-    printf("NICE");
+    printf("OK");
     return 0;
 }
 
