@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-// ogarnąć zmienne do użycia
 
-int load(int** n, int* k){
+unsigned int S_MAX = sizeof(size_t) / sizeof(unsigned int);
+
+int load(unsigned int** dim, unsigned int* size){
+    //rozkminić lepsze wczytywanie
     int elem = getchar();
-    int num = 0;
+    unsigned int num = 0;
     int space = 1;
+    int start = 1;
     while ((elem != '\n') && (elem != EOF))
     {
         if ((elem != ' ') && (elem != '\t') && (elem != '\v') && (elem != '\f') && (elem != '\r')) {
@@ -14,31 +17,34 @@ int load(int** n, int* k){
             if ((dig < 0) || (dig > 9)) {return 1;}
             num += dig;
             space = 0;
+            start = 0;
         }
         else if (space == 0){
             space = 1;
-            if (num != 0){ 
-                *(*n + (*k)) = num;
+            if (start != 1){ 
+                *(*dim + (*size)) = num;
                 num = 0;
-                (*k) ++;
-                *n = realloc(*n, (*k)*sizeof(int)); //może wystarczy k
-                if (*n == NULL) {return 2;}
+                (*size) ++;
+                if ((*size) > S_MAX) {return 2;}
+                *dim = realloc(*dim, (*size)*sizeof(unsigned int));
+                if (*dim == NULL) {return 2;}
             }
         }
         elem = getchar();
     }
     if (num != 0){ 
-        *(*n + (*k)) = num;
-        (*k)++;
+        *(*dim + (*size)) = num;
+        (*size)++;
     }
     return 0;
 }
 
 
-int loadhex(int** z, int k){
+int loadhex(unsigned int** walls, unsigned int size){
     int elem = getchar();
-    int j = 0;//czy na końcu j == k - 1?
+    unsigned int j = 0;
     while ((elem != '\n') && (elem != EOF)) {
+        if (j >= size) {return 1;}
         if ((elem < 58) && (elem > 47)){
             elem -= 48;
         }
@@ -51,54 +57,163 @@ int loadhex(int** z, int k){
             elem += 9;
         }
         else {return 1;}
-        for (int i = 0; i < 4; i++){
-            *(*z + j + 3 - i) = elem % 2;
+        for (int i = 3; i >= 0; i--){
+            *(*walls + j + 3 - i) = elem % 2;
             elem /= 2;
         }
         j += 4;
         elem = getchar();
     }
-    if (j != (k - 1)) {return 1;}
     return 0;
 }
 
 
-int loadweird(int** z, int p, unsigned int k){
-    int *a = malloc(sizeof(int));
+int loadweird(unsigned int** walls, unsigned int p){
+    unsigned int *a = malloc(sizeof(unsigned int));
+    if (a == NULL) {return 1;}
     int l = 0;
     int t = load(&a, &l);
+    if (t != 0) {return 1;}
     if ((l != 5) || (t != 0)) {return 1;}
-    int* s = malloc((a[3]) * sizeof(int));
-    int* w = malloc((a[3]) * sizeof(int));
+    if (a[2] == 0) {return 1;} // m != 0
+    if (a[3] > S_MAX) {return 1;}
+    unsigned int* s = malloc((a[3]) * sizeof(unsigned int));
+    if (s == NULL) {return 1;}
+    unsigned int* w = malloc((a[3]) * sizeof(unsigned int));
+    if (w == NULL) {return 1;}
     s[0] = (a[0] * a[4] + a[1]) % a[2] + 1;
-    for (int i = 1; i <= a[3]; i++){
-        s[i] = (a[0] * s[i - 1] + a[1]) % a[2] + 1;
+    for (unsigned int i = 1; i <= a[3]; i++){
+        s[i] = (a[0] * s[i - 1] + a[1]) % a[2];
     }
-    for (int i = 0; i <a[3]; i++){
+    for (unsigned int i = 0; i < a[3]; i++){
         w[i] = s[i] % p;
         unsigned int elem = w[i];
-        // while (elem < k) {
-        //     *(*z + (elem - 1)) = 1;
-        //     elem += 4294967296;
-        // }
-        *(*z + (elem - 1)) = 1;
+        *(*walls + (elem - 1)) = 1;
     }
+    free(a);
+    free(s);
+    free(w);
     return 0;
 }
 
-int main (){
-    int k = 0;
-    int *n = malloc(sizeof(int));
-    int *x = malloc(sizeof(int));
-    int *y = malloc(sizeof(int));
-    int *z = malloc(124 * sizeof(int));
-    loadweird(&z, 125, 124);
-    for (int i = 0; i < 124; i++){
-        // putchar(n[i]);
-        printf("%d,", z[i]);
+
+int loadz(unsigned int** dim, unsigned int** walls, unsigned int size, unsigned int* bits){
+    unsigned int m = 0;
+    unsigned int p = 1;
+    for (unsigned int i = 0; i < size; i++){
+        unsigned int x = (*(*dim + i)) - 1;
+        p *= (*(*dim + i));
+        for (unsigned int j = 0; j < i; j++) {
+            x *= (*(*dim + j));
+        }
+        m += x;
     }
-    printf("\n");
-    // n[0] = getchar();
-    // putchar(n[0]);
+    if (m == 0) {m = 4;}
+    if ((m % 4) != 0) {m += 4 - (m % 4);}
+    int answer = 0;
+    //nie wiem czemu nie przechodzi
+    // if (m > S_MAX) {printf("m = %d ", m); return 2;}
+    *bits = m;
+    *walls = realloc(*walls, m*sizeof(unsigned int));
+    if (*walls == NULL) {return 2;}
+    for (unsigned int i = 0; i < m; i++) {*(*walls + i) = 0;}
+    int elem1 = getchar();
+    if (elem1 == 'R'){
+        answer = loadweird(walls, p);
+    }
+    else {
+        int elem2 = getchar();
+        if ((elem1 == '0') && (elem2 == 'x')){
+            answer = loadhex(walls, m);
+        }
+        else {return 1;}
+    }
+    return answer;
+}
+
+int checkfull(unsigned int** walls, unsigned int** dim, unsigned int** coordinates, unsigned int bits, unsigned int size){
+    int bit = 0;
+    int p = 1;
+    for (int i = 0; i < size; i++){
+        int el = *(*coordinates + i);
+        if (el > *(*dim + i)){return 2;}
+        bit += (el - 1)*p;
+        p *= *(*dim + i);
+    }
+    if (bit > bits) {return 2;}
+    return *(*walls + bit);
+}
+
+
+int loadall(unsigned int** dim, unsigned int** start, unsigned int** stop, unsigned int** walls, unsigned int* size) {
+    int answer;
+    answer = load(dim, size);
+    if (answer == 2) {return 6;}
+    if ((answer != 0) || ((*size) == 0)) {return 1;}
+    unsigned int asize = *size;
+    *size = 0;
+    answer = load(start, size);
+    if (answer == 2) {return 6;}
+    if ((asize != *size) || (answer != 0)) {return 2;}
+    *size = 0;
+    answer = load(stop, size);
+    if (answer == 2) {return 6;}
+    if ((asize != *size) || (answer != 0)) {return 3;}
+    unsigned int bits = 0;
+    answer = loadz(dim, walls, *size, &bits);
+    if (answer == 2) {return 6;}
+    if (answer != 0) {return 4;}
+    if (checkfull(walls, dim, start, bits, *size) != 0) {return 2;}
+    if (checkfull(walls, dim, stop, bits, *size) != 0) {return 3;}
+    if (getchar() != EOF) {return 5;}
     return 0;
 }
+
+void makematrix(unsigned int*** ifvisited, unsigned int** dim, unsigned int size, unsigned int num){
+//     if (num = size - 1){
+//         for (int i = 0; i < *(*dim + num); i++){
+//             *(*ifvisited + i) = 0;
+//         }
+//         return;
+//     }
+//     for (int i = 0; i < *(*dim + num); i++){
+//         (*ifvisited + i) = malloc(*(*dim + num + 1));
+//         makematrix((*ifvisited + i), dim, size, num + 1);
+//     }
+}
+
+int findway(unsigned int** dim, unsigned int** start, unsigned int** stop, unsigned int** walls, unsigned int* size){
+    unsigned int *ifvisited = malloc(sizeof(unsigned int*));
+    unsigned int **ifvisited = malloc(**dim * sizeof(unsigned int));
+    makematrix(&ifvisited, dim, *size, 0);
+    return 0;
+}
+
+
+void end(unsigned int** dim, unsigned int** start, unsigned int** stop, unsigned int** walls){
+    free(*dim);
+    free(*start);
+    free(*stop);
+    free(*walls);
+}
+
+
+// int main (){
+//     unsigned int size = 0;
+//     unsigned int *dim = malloc(sizeof(unsigned int));
+//     unsigned int *start = malloc(sizeof(unsigned int));
+//     unsigned int *stop = malloc(sizeof(unsigned int));
+//     unsigned int *walls = malloc(sizeof(unsigned int));
+//     int t = loadall(&dim, &start, &stop, &walls, &size);
+//     if (t != 0) {
+//         printf("ERROR %d\n", (t % 6));
+//         end(&dim, &start, &stop, &walls);
+//         return 1;
+//     }
+//     findway(&dim, &start, &stop, &walls, &size);
+//     end(&dim, &start, &stop, &walls);
+//     printf("OK");
+//     return 0;
+// }
+
+
